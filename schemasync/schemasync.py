@@ -1,6 +1,4 @@
-#!/usr/bin/python
-
-import re
+# coding=utf-8
 import sys
 import os
 import logging
@@ -61,64 +59,100 @@ def parse_cmd_line(fn):
         description = """
                        A MySQL Schema Synchronization Utility
                       """
-        parser = optparse.OptionParser(usage=usage,
-                                       description=description)
+        parser = optparse.OptionParser(usage=usage, description=description)
 
-        parser.add_option("-V", "--version",
-                          action="store_true",
-                          dest="show_version",
-                          default=False,
-                          help="show version and exit.")
+        parser.add_option(
+            "-V",
+            "--version",
+            action="store_true",
+            dest="show_version",
+            default=False,
+            help="show version and exit.",
+        )
 
-        parser.add_option("-r", "--revision",
-                          action="store_true",
-                          dest="version_filename",
-                          default=False,
-                          help=("increment the migration script version number "
-                                "if a file with the same name already exists."))
+        parser.add_option(
+            "-r",
+            "--revision",
+            action="store_true",
+            dest="version_filename",
+            default=False,
+            help=(
+                "increment the migration script version number "
+                "if a file with the same name already exists."
+            ),
+        )
 
-        parser.add_option("-a", "--sync-auto-inc",
-                          dest="sync_auto_inc",
-                          action="store_true",
-                          default=False,
-                          help="sync the AUTO_INCREMENT value for each table.")
+        parser.add_option(
+            "-a",
+            "--sync-auto-inc",
+            dest="sync_auto_inc",
+            action="store_true",
+            default=False,
+            help="sync the AUTO_INCREMENT value for each table.",
+        )
 
-        parser.add_option("-c", "--sync-comments",
-                          dest="sync_comments",
-                          action="store_true",
-                          default=False,
-                          help=("sync the COMMENT field for all "
-                                "tables AND columns"))
+        parser.add_option(
+            "-c",
+            "--sync-comments",
+            dest="sync_comments",
+            action="store_true",
+            default=False,
+            help="sync the COMMENT field for all " "tables AND columns",
+        )
 
-        parser.add_option("-D", "--no-date",
-                          dest="no_date",
-                          action="store_true",
-                          default=False,
-                          help="removes the date from the file format ")
+        parser.add_option(
+            "-D",
+            "--no-date",
+            dest="no_date",
+            action="store_true",
+            default=False,
+            help="removes the date from the file format ",
+        )
 
-        parser.add_option("--charset",
-                          dest="charset",
-                          default='utf8',
-                          help="set the connection charset, default: utf8")
+        parser.add_option(
+            "--charset",
+            dest="charset",
+            default="utf8",
+            help="set the connection charset, default: utf8",
+        )
 
-        parser.add_option("--tag",
-                          dest="tag",
-                          help=("tag the migration scripts as <database>_<tag>."
-                                " Valid characters include [A-Za-z0-9-_]"))
+        parser.add_option(
+            "--tag",
+            dest="tag",
+            help=(
+                "tag the migration scripts as <database>_<tag>."
+                " Valid characters include [A-Za-z0-9-_]"
+            ),
+        )
 
-        parser.add_option("--output-directory",
-                          dest="output_directory",
-                          default=os.getcwd(),
-                          help=("directory to write the migration scrips. "
-                                "The default is current working directory. "
-                                "Must use absolute path if provided."))
+        parser.add_option(
+            "--tables",
+            dest="tables",
+            default=None,
+            help="specify table name to diff." "multiple tables split by comma",
+        )
 
-        parser.add_option("--log-directory",
-                          dest="log_directory",
-                          help=("set the directory to write the log to. "
-                                "Must use absolute path if provided. "
-                                "Default is output directory. "
-                                "Log filename is schemasync.log"))
+        parser.add_option(
+            "--output-directory",
+            dest="output_directory",
+            default=os.getcwd(),
+            help=(
+                "directory to write the migration scrips. "
+                "The default is current working directory. "
+                "Must use absolute path if provided."
+            ),
+        )
+
+        parser.add_option(
+            "--log-directory",
+            dest="log_directory",
+            help=(
+                "set the directory to write the log to. "
+                "Must use absolute path if provided. "
+                "Default is output directory. "
+                "Log filename is schemasync.log"
+            ),
+        )
 
         options, args = parser.parse_args(sys.argv[1:])
 
@@ -130,21 +164,37 @@ def parse_cmd_line(fn):
             parser.print_help()
             return 0
 
-        return fn(*args, **dict(version_filename=options.version_filename,
-                                output_directory=options.output_directory,
-                                log_directory=options.log_directory,
-                                no_date=options.no_date,
-                                tag=options.tag,
-                                charset=options.charset,
-                                sync_auto_inc=options.sync_auto_inc,
-                                sync_comments=options.sync_comments))
+        return fn(
+            *args,
+            **dict(
+                version_filename=options.version_filename,
+                output_directory=options.output_directory,
+                log_directory=options.log_directory,
+                no_date=options.no_date,
+                tag=options.tag,
+                charset=options.charset,
+                sync_auto_inc=options.sync_auto_inc,
+                sync_comments=options.sync_comments,
+                tables=options.tables,
+            ),
+        )
 
     return processor
 
 
-def app(sourcedb='', targetdb='', version_filename=False,
-        output_directory=None, log_directory=None, no_date=False,
-        tag=None, charset=None, sync_auto_inc=False, sync_comments=False):
+def app(
+    sourcedb="",
+    targetdb="",
+    version_filename=False,
+    output_directory=None,
+    log_directory=None,
+    no_date=False,
+    tag=None,
+    charset=None,
+    sync_auto_inc=False,
+    sync_comments=False,
+    tables=None,
+):
     """Main Application"""
 
     options = locals()
@@ -162,14 +212,16 @@ def app(sourcedb='', targetdb='', version_filename=False,
             print("Log directory does not exist, writing log to %s" % output_directory)
         log_directory = output_directory
 
-    logging.basicConfig(filename=os.path.join(log_directory, LOG_FILENAME),
-                        level=logging.INFO,
-                        format='[%(levelname)s  %(asctime)s] %(message)s')
+    logging.basicConfig(
+        filename=os.path.join(log_directory, LOG_FILENAME),
+        level=logging.INFO,
+        format="[%(levelname)s  %(asctime)s] %(message)s",
+    )
 
     console = logging.StreamHandler()
     console.setLevel(logging.DEBUG)
-    if len(logging.getLogger('').handlers) <= 1:
-        logging.getLogger('').addHandler(console)
+    if len(logging.getLogger("").handlers) <= 1:
+        logging.getLogger("").addHandler(console)
 
     if not sourcedb:
         logging.error("Source database URL not provided. Exiting.")
@@ -180,11 +232,11 @@ def app(sourcedb='', targetdb='', version_filename=False,
         logging.error("Invalid source database URL format. Exiting.")
         return 1
 
-    if not source_info['protocol'] == 'mysql':
+    if not source_info["protocol"] == "mysql":
         logging.error("Source database must be MySQL. Exiting.")
         return 1
 
-    if 'db' not in source_info:
+    if "db" not in source_info:
         logging.error("Source database name not provided. Exiting.")
         return 1
 
@@ -197,142 +249,183 @@ def app(sourcedb='', targetdb='', version_filename=False,
         logging.error("Invalid target database URL format. Exiting.")
         return 1
 
-    if not target_info['protocol'] == 'mysql':
+    if not target_info["protocol"] == "mysql":
         logging.error("Target database must be MySQL. Exiting.")
         return 1
 
-    if 'db' not in target_info:
+    if "db" not in target_info:
         logging.error("Target database name not provided. Exiting.")
         return 1
 
-    if source_info['db'] == '*' and target_info['db'] == '*':
+    if source_info["db"] == "*" and target_info["db"] == "*":
         from schemaobject.connection import DatabaseConnection
 
         sourcedb_none = sourcedb[:-1]
         targetdb_none = targetdb[:-1]
         connection = DatabaseConnection()
-        connection.connect(sourcedb_none, charset='utf8')
+        connection.connect(sourcedb_none, charset="utf8")
         sql_schema = """
         SELECT SCHEMA_NAME FROM information_schema.SCHEMATA
         WHERE SCHEMA_NAME NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')
         """
         schemas = connection.execute(sql_schema)
         for schema_info in schemas:
-            db = schema_info['SCHEMA_NAME']
+            db = schema_info["SCHEMA_NAME"]
             sourcedb = sourcedb_none + db
             targetdb = targetdb_none + db
             try:
-                app(sourcedb=sourcedb, targetdb=targetdb, version_filename=version_filename,
-                    output_directory=output_directory, log_directory=log_directory, no_date=no_date,
-                    tag=tag, charset=charset, sync_auto_inc=sync_auto_inc, sync_comments=sync_comments)
+                app(
+                    sourcedb=sourcedb,
+                    targetdb=targetdb,
+                    version_filename=version_filename,
+                    output_directory=output_directory,
+                    log_directory=log_directory,
+                    no_date=no_date,
+                    tag=tag,
+                    charset=charset,
+                    sync_auto_inc=sync_auto_inc,
+                    sync_comments=sync_comments,
+                )
             except schemaobject.connection.DatabaseError as e:
                 logging.error("MySQL Error %d: %s (Ignore)" % (e.args[0], e.args[1]))
         return 1
 
-    source_obj = schemaobject.SchemaObject(sourcedb, charset)
-    target_obj = schemaobject.SchemaObject(targetdb, charset)
+    source_obj = schemaobject.SchemaObject(sourcedb, charset, tables=tables)
+    target_obj = schemaobject.SchemaObject(targetdb, charset, tables=tables)
 
-    if utils.compare_version(source_obj.version, '5.0.0') < 0:
-        logging.error("%s requires MySQL version 5.0+ (source is v%s)"
-                      % (APPLICATION_NAME, source_obj.version))
+    if utils.compare_version(source_obj.version, "5.0.0") < 0:
+        logging.error(
+            "%s requires MySQL version 5.0+ (source is v%s)"
+            % (APPLICATION_NAME, source_obj.version)
+        )
         return 1
 
-    if utils.compare_version(target_obj.version, '5.0.0') < 0:
-        logging.error("%s requires MySQL version 5.0+ (target is v%s)"
-                      % (APPLICATION_NAME, target_obj.version))
+    if utils.compare_version(target_obj.version, "5.0.0") < 0:
+        logging.error(
+            "%s requires MySQL version 5.0+ (target is v%s)"
+            % (APPLICATION_NAME, target_obj.version)
+        )
         return 1
 
     # data transformation filters
-    filters = (lambda d: utils.REGEX_MULTI_SPACE.sub(' ', d),
-               lambda d: utils.REGEX_DISTANT_SEMICOLIN.sub(';', d),
-               lambda d: utils.REGEX_SEMICOLON_EXPLODE_TO_NEWLINE.sub(";\n", d))
+    filters = (
+        lambda d: utils.REGEX_MULTI_SPACE.sub(" ", d),
+        lambda d: utils.REGEX_DISTANT_SEMICOLIN.sub(";", d),
+        lambda d: utils.REGEX_SEMICOLON_EXPLODE_TO_NEWLINE.sub(";\n", d),
+    )
 
     # Information about this run, used in the patch/revert templates
-    ctx = dict(app_version=APPLICATION_VERSION,
-               server_version=target_obj.version,
-               target_host=target_obj.host,
-               target_database=target_obj.selected.name,
-               created=datetime.datetime.now().strftime(TPL_DATE_FORMAT))
+    ctx = dict(
+        app_version=APPLICATION_VERSION,
+        server_version=target_obj.version,
+        target_host=target_obj.host,
+        target_database=target_obj.selected.name,
+        target_tables=tables,
+        created=datetime.datetime.now().strftime(TPL_DATE_FORMAT),
+    )
 
-    p_fname, r_fname = utils.create_pnames(target_obj.selected.name,
-                                           tag=tag,
-                                           date_format=DATE_FORMAT,
-                                           no_date=no_date)
+    p_fname, r_fname = utils.create_pnames(
+        target_obj.selected.name, tag=tag, date_format=DATE_FORMAT, no_date=no_date
+    )
 
-    ctx['type'] = "Patch Script"
-    p_buffer = utils.PatchBuffer(name=os.path.join(output_directory, p_fname),
-                                 filters=filters, tpl=PATCH_TPL, ctx=ctx.copy(),
-                                 version_filename=version_filename)
+    ctx["type"] = "Patch Script"
+    p_buffer = utils.PatchBuffer(
+        name=os.path.join(output_directory, p_fname),
+        filters=filters,
+        tpl=PATCH_TPL,
+        ctx=ctx.copy(),
+        version_filename=version_filename,
+    )
 
-    ctx['type'] = "Revert Script"
-    r_buffer = utils.PatchBuffer(name=os.path.join(output_directory, r_fname),
-                                 filters=filters, tpl=PATCH_TPL, ctx=ctx.copy(),
-                                 version_filename=version_filename)
+    ctx["type"] = "Revert Script"
+    r_buffer = utils.PatchBuffer(
+        name=os.path.join(output_directory, r_fname),
+        filters=filters,
+        tpl=PATCH_TPL,
+        ctx=ctx.copy(),
+        version_filename=version_filename,
+    )
 
     db_selected = False
-    for patch, revert in syncdb.sync_schema(source_obj.selected,
-                                            target_obj.selected, options):
+    for patch, revert in syncdb.sync_schema(
+        source_obj.selected, target_obj.selected, options
+    ):
         if patch and revert:
             if not db_selected:
-                p_buffer.write(target_obj.selected.select() + '\n')
-                r_buffer.write(target_obj.selected.select() + '\n')
-                p_buffer.write(target_obj.selected.fk_checks(0) + '\n')
-                r_buffer.write(target_obj.selected.fk_checks(0) + '\n')
+                p_buffer.write(target_obj.selected.select() + "\n")
+                r_buffer.write(target_obj.selected.select() + "\n")
+                p_buffer.write(target_obj.selected.fk_checks(0) + "\n")
+                r_buffer.write(target_obj.selected.fk_checks(0) + "\n")
                 db_selected = True
 
-            p_buffer.write(patch + '\n')
-            r_buffer.write(revert + '\n')
+            p_buffer.write(patch + "\n")
+            r_buffer.write(revert + "\n")
 
     if db_selected:
-        p_buffer.write(target_obj.selected.fk_checks(1) + '\n')
-        r_buffer.write(target_obj.selected.fk_checks(1) + '\n')
+        p_buffer.write(target_obj.selected.fk_checks(1) + "\n")
+        r_buffer.write(target_obj.selected.fk_checks(1) + "\n")
 
     for patch, revert in syncdb.sync_views(source_obj.selected, target_obj.selected):
         if patch and revert:
             if not db_selected:
-                p_buffer.write(target_obj.selected.select() + '\n')
-                r_buffer.write(target_obj.selected.select() + '\n')
+                p_buffer.write(target_obj.selected.select() + "\n")
+                r_buffer.write(target_obj.selected.select() + "\n")
                 db_selected = True
 
-            p_buffer.write(patch + '\n')
-            r_buffer.write(revert + '\n')
+            p_buffer.write(patch + "\n")
+            r_buffer.write(revert + "\n")
 
     for patch, revert in syncdb.sync_triggers(source_obj.selected, target_obj.selected):
         if patch and revert:
             if not db_selected:
-                p_buffer.write(target_obj.selected.select() + '\n')
-                r_buffer.write(target_obj.selected.select() + '\n')
+                p_buffer.write(target_obj.selected.select() + "\n")
+                r_buffer.write(target_obj.selected.select() + "\n")
                 db_selected = True
 
-            p_buffer.write(patch + '\n')
-            r_buffer.write(revert + '\n')
+            p_buffer.write(patch + "\n")
+            r_buffer.write(revert + "\n")
 
-    for patch, revert in syncdb.sync_procedures(source_obj.selected, target_obj.selected):
+    for patch, revert in syncdb.sync_procedures(
+        source_obj.selected, target_obj.selected
+    ):
         if patch and revert:
-
             if not db_selected:
-                p_buffer.write(target_obj.selected.select() + '\n')
-                r_buffer.write(target_obj.selected.select() + '\n')
-                p_buffer.write(target_obj.selected.fk_checks(0) + '\n')
-                r_buffer.write(target_obj.selected.fk_checks(0) + '\n')
+                p_buffer.write(target_obj.selected.select() + "\n")
+                r_buffer.write(target_obj.selected.select() + "\n")
+                p_buffer.write(target_obj.selected.fk_checks(0) + "\n")
+                r_buffer.write(target_obj.selected.fk_checks(0) + "\n")
                 db_selected = True
 
-            p_buffer.write(patch + '\n')
-            r_buffer.write(revert + '\n')
+            p_buffer.write(patch + "\n")
+            r_buffer.write(revert + "\n")
 
     if not p_buffer.modified:
-        logging.info(("No migration scripts written."
-                      " mysql://%s/%s and mysql://%s/%s were in sync.") %
-                     (source_obj.host, source_obj.selected.name,
-                      target_obj.host, target_obj.selected.name))
+        logging.info(
+            (
+                "No migration scripts written."
+                " mysql://%s/%s and mysql://%s/%s were in sync."
+            )
+            % (
+                source_obj.host,
+                source_obj.selected.name,
+                target_obj.host,
+                target_obj.selected.name,
+            )
+        )
     else:
         try:
             p_buffer.save()
             r_buffer.save()
-            logging.info("Migration scripts created for mysql://%s/%s\n"
-                         "Patch Script: %s\nRevert Script: %s"
-                         % (target_obj.host, target_obj.selected.name,
-                            p_buffer.name, r_buffer.name))
+            logging.info(
+                "Migration scripts created for mysql://%s/%s\n"
+                "Patch Script: %s\nRevert Script: %s"
+                % (
+                    target_obj.host,
+                    target_obj.selected.name,
+                    p_buffer.name,
+                    r_buffer.name,
+                )
+            )
         except OSError as e:
             p_buffer.delete()
             r_buffer.delete()
@@ -354,4 +447,17 @@ def main():
 
 
 if __name__ == "__main__":
+    # 测试时单独调用
+    # app(
+    #     sourcedb="mysql://root:Asdf,1234@192.168.3.200:3230/work-service",
+    #     targetdb="mysql://root:Asdf,1234@193.112.132.20:5306/work-service",
+    #     no_date=True,
+    #     tag=None,
+    #     charset=None,
+    #     sync_auto_inc=False,
+    #     sync_comments=True,
+    #     tables=None,
+    #     output_directory='D:\\projects\\python-scripts\\mysql_data_diff\\patch_sqls',
+    # )
+
     main()

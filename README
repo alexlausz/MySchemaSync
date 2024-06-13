@@ -1,3 +1,13 @@
+
+========
+Fork自https://github.com/mmatuson/SchemaSync
+基于个人需要做了如下修改，请谨慎使用：
+1、支持python 3.8.10
+2、将主要依赖库schemaobject直接放在了项目中，import路径相应修改
+3、支持指定表(多张表以逗号分隔)进行比对
+4、输出的sql脚本文件名按需要进行了修改
+5、因测试项目不适用于新的mysql版本，删除了原项目中test目录
+
 Project maintaining again. If you want to help us, we really appreciate that.
 
 

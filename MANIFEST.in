@@ -1,2 +1,0 @@
-include README CHANGES *.py
-recursive-include schemasync *.py

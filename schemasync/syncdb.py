@@ -10,29 +10,33 @@ def sync_schema(fromdb, todb, options):
         todb: A SchemaObject Schema Instance.
         options: dictionary of options to use when syncing schemas
             sync_auto_inc: Bool, sync auto inc value throughout the schema?
-            sync_comments: Bool, sync comment fields trhoughout the schema?
+            sync_comments: Bool, sync comment fields throughout the schema?
 
     Yields:
         A tuple (patch, revert) containing the next SQL statement needed
-        to migrate fromdb to todb. The tuple will always contain 2 strings,
+        to migrate fromdb to todb.
+        The tuple will always contain 2 strings,
         even if they are empty.
     """
     p, r = sync_database_options(fromdb, todb)
 
     if p and r:
-        yield (
-            "%s %s;" % (todb.alter(), p),
-            "%s %s;" % (todb.alter(), r)
-        )
+        yield "%s %s;" % (todb.alter(), p), "%s %s;" % (todb.alter(), r)
 
-    for p, r in sync_created_tables(fromdb.tables, todb.tables,
-                                    sync_auto_inc=options['sync_auto_inc'],
-                                    sync_comments=options['sync_comments']):
+    for p, r in sync_created_tables(
+        fromdb.tables,
+        todb.tables,
+        sync_auto_inc=options["sync_auto_inc"],
+        sync_comments=options["sync_comments"],
+    ):
         yield p, r
 
-    for p, r in sync_dropped_tables(fromdb.tables, todb.tables,
-                                    sync_auto_inc=options['sync_auto_inc'],
-                                    sync_comments=options['sync_comments']):
+    for p, r in sync_dropped_tables(
+        fromdb.tables,
+        todb.tables,
+        sync_auto_inc=options["sync_auto_inc"],
+        sync_comments=options["sync_comments"],
+    ):
         yield p, r
 
     for t in fromdb.tables:
@@ -49,8 +53,8 @@ def sync_schema(fromdb, todb, options):
             rlist.append(r)
 
         if plist and rlist:
-            p = "%s %s;" % (to_table.alter(), ', '.join(plist))
-            r = "%s %s;" % (to_table.alter(), ', '.join(rlist))
+            p = "%s %s;" % (to_table.alter(), ", ".join(plist))
+            r = "%s %s;" % (to_table.alter(), ", ".join(rlist))
             yield p, r
 
 
@@ -63,56 +67,65 @@ def sync_table(from_table, to_table, options):
         to_table: A SchemaObject TableSchema Instance.
         options: dictionary of options to use when syncing schemas
             sync_auto_inc: Bool, sync auto inc value throughout the table?
-            sync_comments: Bool, sync comment fields trhoughout the table?
+            sync_comments: Bool, sync comment fields throughout the table?
 
     Yields:
         A tuple (patch, revert) containing the next SQL statements
     """
-    for p, r in sync_created_columns(from_table.columns,
-                                     to_table.columns,
-                                     sync_comments=options['sync_comments']):
-        yield (p, r)
+    for p, r in sync_created_columns(
+        from_table.columns, to_table.columns, sync_comments=options["sync_comments"]
+    ):
+        yield p, r
 
-    for p, r in sync_dropped_columns(from_table.columns,
-                                     to_table.columns,
-                                     sync_comments=options['sync_comments']):
-        yield (p, r)
+    for p, r in sync_dropped_columns(
+        from_table.columns, to_table.columns, sync_comments=options["sync_comments"]
+    ):
+        yield p, r
 
     if from_table and to_table:
-        for p, r in sync_modified_columns(from_table.columns,
-                                          to_table.columns,
-                                          sync_comments=options['sync_comments']):
-            yield (p, r)
+        for p, r in sync_modified_columns(
+            from_table.columns, to_table.columns, sync_comments=options["sync_comments"]
+        ):
+            yield p, r
 
         # add new indexes, then compare existing indexes for changes
         for p, r in sync_created_constraints(from_table.indexes, to_table.indexes):
-            yield (p, r)
+            yield p, r
 
         for p, r in sync_modified_constraints(from_table.indexes, to_table.indexes):
-            yield (p, r)
+            yield p, r
 
         # we'll drop indexes after we process foreign keys...
 
         # add new foreign keys and compare existing fks for changes
-        for p, r in sync_created_constraints(from_table.foreign_keys, to_table.foreign_keys):
-            yield (p, r)
+        for p, r in sync_created_constraints(
+            from_table.foreign_keys, to_table.foreign_keys
+        ):
+            yield p, r
 
-        for p, r in sync_modified_constraints(from_table.foreign_keys, to_table.foreign_keys):
-            yield (p, r)
+        for p, r in sync_modified_constraints(
+            from_table.foreign_keys, to_table.foreign_keys
+        ):
+            yield p, r
 
-        for p, r in sync_dropped_constraints(from_table.foreign_keys, to_table.foreign_keys):
-            yield (p, r)
+        for p, r in sync_dropped_constraints(
+            from_table.foreign_keys, to_table.foreign_keys
+        ):
+            yield p, r
 
         # drop remaining indexes
         for p, r in sync_dropped_constraints(from_table.indexes, to_table.indexes):
-            yield (p, r)
+            yield p, r
 
         # end the alter table syntax with the changed table options
-        p, r = sync_table_options(from_table, to_table,
-                                  sync_auto_inc=options['sync_auto_inc'],
-                                  sync_comments=options['sync_comments'])
+        p, r = sync_table_options(
+            from_table,
+            to_table,
+            sync_auto_inc=options["sync_auto_inc"],
+            sync_comments=options["sync_comments"],
+        )
         if p:
-            yield (p, r)
+            yield p, r
 
 
 def sync_database_options(from_db, to_db):
@@ -137,13 +150,14 @@ def sync_database_options(from_db, to_db):
             r.append(to_db.options[opt].create())
 
     if p:
-        return ' '.join(p), ' '.join(r)
+        return " ".join(p), " ".join(r)
     else:
-        return '', ''
+        return "", ""
 
 
-def sync_created_tables(from_tables, to_tables,
-                        sync_auto_inc=False, sync_comments=False):
+def sync_created_tables(
+    from_tables, to_tables, sync_auto_inc=False, sync_comments=False
+):
     """Generate the SQL statements needed to CREATE Tables in the target
        schema (patch), and remove them (revert)
 
@@ -160,17 +174,18 @@ def sync_created_tables(from_tables, to_tables,
         if t not in to_tables:
             p, r = from_tables[t].create(), from_tables[t].drop()
             if not sync_auto_inc:
-                p = REGEX_TABLE_AUTO_INC.sub('', p)
-                r = REGEX_TABLE_AUTO_INC.sub('', r)
+                p = REGEX_TABLE_AUTO_INC.sub("", p)
+                r = REGEX_TABLE_AUTO_INC.sub("", r)
             if not sync_comments:
-                p = REGEX_TABLE_COMMENT.sub('', p)
-                r = REGEX_TABLE_COMMENT.sub('', r)
+                p = REGEX_TABLE_COMMENT.sub("", p)
+                r = REGEX_TABLE_COMMENT.sub("", r)
 
             yield p, r
 
 
-def sync_dropped_tables(from_tables, to_tables,
-                        sync_auto_inc=False, sync_comments=False):
+def sync_dropped_tables(
+    from_tables, to_tables, sync_auto_inc=False, sync_comments=False
+):
     """Generate the SQL statements needed to DROP Tables in the target
        schema (patch), and restore them to their previous definition (revert)
 
@@ -187,17 +202,16 @@ def sync_dropped_tables(from_tables, to_tables,
         if t not in from_tables:
             p, r = to_tables[t].drop(), to_tables[t].create()
             if not sync_auto_inc:
-                p = REGEX_TABLE_AUTO_INC.sub('', p)
-                r = REGEX_TABLE_AUTO_INC.sub('', r)
+                p = REGEX_TABLE_AUTO_INC.sub("", p)
+                r = REGEX_TABLE_AUTO_INC.sub("", r)
             if not sync_comments:
-                p = REGEX_TABLE_COMMENT.sub('', p)
-                r = REGEX_TABLE_COMMENT.sub('', r)
+                p = REGEX_TABLE_COMMENT.sub("", p)
+                r = REGEX_TABLE_COMMENT.sub("", r)
 
             yield p, r
 
 
-def sync_table_options(from_table, to_table,
-                       sync_auto_inc=False, sync_comments=False):
+def sync_table_options(from_table, to_table, sync_auto_inc=False, sync_comments=False):
     """Generate the SQL statements needed to modify the Table options
        of the target table (patch), and restore them to their previous
        definition (revert)
@@ -206,7 +220,7 @@ def sync_table_options(from_table, to_table,
        from_table: A SchemaObject TableSchema Instance.
        to_table: A SchemaObject TableSchema Instance.
        sync_auto_inc: Bool, sync the tables auto increment value?
-       sync_comments: Bool, sync the tbales comment field?
+       sync_comments: Bool, sync the table comment field?
 
     Returns:
        A tuple (patch, revert) containing the SQL statements.
@@ -216,7 +230,9 @@ def sync_table_options(from_table, to_table,
     r = []
 
     for opt in from_table.options:
-        if (opt == 'auto_increment' and not sync_auto_inc) or (opt == 'comment' and not sync_comments):
+        if (opt == "auto_increment" and not sync_auto_inc) or (
+            opt == "comment" and not sync_comments
+        ):
             continue
 
         if from_table.options[opt] != to_table.options[opt]:
@@ -224,20 +240,20 @@ def sync_table_options(from_table, to_table,
             r.append(to_table.options[opt].create())
 
     if p:
-        return ' '.join(p), ' '.join(r)
+        return " ".join(p), " ".join(r)
     else:
-        return '', ''
+        return "", ""
 
 
 def get_previous_item(lst, item):
-    """ Given an item, find its previous item in the list
-        If the item appears more than once in the list, return the first index
+    """Given an item, find its previous item in the list
+    If the item appears more than once in the list, return the first index
 
-        Args:
-            lst: the list to search
-            item: the item we want to find the previous item for
+    Args:
+        lst: the list to search
+        item: the item we want to find the previous item for
 
-        Returns: The previous item or None if not found.
+    Returns: The previous item or None if not found.
     """
     try:
         i = lst.index(item)
@@ -264,8 +280,10 @@ def sync_created_columns(from_cols, to_cols, sync_comments=False):
     for c in from_cols:
         if c not in to_cols:
             fprev = get_previous_item(from_cols.keys(), c)
-            yield (from_cols[c].create(after=fprev, with_comment=sync_comments),
-                   from_cols[c].drop())
+            yield (
+                from_cols[c].create(after=fprev, with_comment=sync_comments),
+                from_cols[c].drop(),
+            )
 
 
 def sync_dropped_columns(from_cols, to_cols, sync_comments=False):
@@ -283,8 +301,10 @@ def sync_dropped_columns(from_cols, to_cols, sync_comments=False):
     for c in to_cols:
         if c not in from_cols:
             tprev = get_previous_item(to_cols.keys(), c)
-            yield (to_cols[c].drop(),
-                   to_cols[c].create(after=tprev, with_comment=sync_comments))
+            yield (
+                to_cols[c].drop(),
+                to_cols[c].create(after=tprev, with_comment=sync_comments),
+            )
 
 
 def sync_modified_columns(from_cols, to_cols, sync_comments=False):
@@ -299,20 +319,20 @@ def sync_modified_columns(from_cols, to_cols, sync_comments=False):
     Yields:
         A tuple (patch, revert) containing the next SQL statements
     """
-    # find the column names comomon to each table
+    # find the column names common to each table
     # and retain the order in which they appear
     from_names = [c for c in from_cols.keys() if c in to_cols]
     to_names = [c for c in to_cols.keys() if c in from_cols]
 
     for from_idx, name in enumerate(from_names):
-
         to_idx = to_names.index(name)
 
-        if ((from_idx != to_idx) or
-                (to_cols[name] != from_cols[name]) or
-                (sync_comments and (from_cols[name].comment != to_cols[name].comment))):
-
-            # move the element to its correct spot as we do comparisons
+        if (
+            (from_idx != to_idx)
+            or (to_cols[name] != from_cols[name])
+            or (sync_comments and (from_cols[name].comment != to_cols[name].comment))
+        ):
+            # move the element to its correct spot as we do comparisons,
             # this will prevent a domino effect of off-by-one false positives.
             if from_names.index(to_names[from_idx]) > to_idx:
                 name = to_names[from_idx]
@@ -324,8 +344,10 @@ def sync_modified_columns(from_cols, to_cols, sync_comments=False):
 
             fprev = get_previous_item(from_cols.keys(), name)
             tprev = get_previous_item(to_cols.keys(), name)
-            yield (from_cols[name].modify(after=fprev, with_comment=sync_comments),
-                   to_cols[name].modify(after=tprev, with_comment=sync_comments))
+            yield (
+                from_cols[name].modify(after=fprev, with_comment=sync_comments),
+                to_cols[name].modify(after=tprev, with_comment=sync_comments),
+            )
 
 
 def sync_created_constraints(src, dest):
@@ -372,7 +394,7 @@ def sync_modified_constraints(src, dest):
        and restore them to their previous definition (revert)
 
        2 tuples will be generated for every change needed.
-       Constraints must be dropped and re-added, since you can not modify them.
+       Constraints must be dropped and re-added, since you cannot modify them.
 
     Args:
         src: A OrderedDict of SchemaObject IndexSchema
